@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /login/admin
+Disallow: /ministere
+
+Sitemap: https://optimus-campus.ne/sitemap.xml

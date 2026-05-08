@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0;url=/">
+  <script>
+    // SPA fallback : redirige vers la racine en conservant le chemin
+    // React Router se charge du routing côté client
+    const path = window.location.pathname + window.location.search + window.location.hash;
+    if (path !== '/') {
+      sessionStorage.setItem('oc_redirect', path);
+    }
+    window.location.replace('/');
+  </script>
+</head>
+<body></body>
+</html>

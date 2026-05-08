@@ -1,0 +1,32 @@
+{
+  "appId": "ne.optimuscampus.app",
+  "appName": "Optimus Campus",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#000091"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#000091",
+      "showSpinner": true,
+      "spinnerColor": "#FFFFFF"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "style": "LIGHT"
+    }
+  }
+}

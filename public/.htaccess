@@ -1,0 +1,60 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Force HTTPS
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Si le fichier ou dossier existe, le servir directement
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Sinon, rediriger vers index.html (React Router SPA)
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
+
+# ── Cache statique ──
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # Assets buildés (hash dans le nom) — cache 1 an
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+
+  # HTML — pas de cache (pour les mises à jour)
+  ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# ── Headers de sécurité ──
+<IfModule mod_headers.c>
+  # Empêcher le clickjacking
+  Header always set X-Frame-Options "SAMEORIGIN"
+
+  # Empêcher le MIME sniffing
+  Header always set X-Content-Type-Options "nosniff"
+
+  # XSS Protection
+  Header always set X-XSS-Protection "1; mode=block"
+
+  # HSTS (force HTTPS pendant 1 an)
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+  # Referrer Policy
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Content Security Policy (à ajuster selon vos besoins)
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co;"
+
+  # Permissions Policy
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
+
+# ── Compression Gzip ──
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>
