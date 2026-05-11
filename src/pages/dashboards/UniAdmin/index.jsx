@@ -205,6 +205,8 @@ export default function UniAdminDash() {
             { icon:'💳', label:'Saisir un paiement', route:'/dashboard/uni-admin/finances', bg:'var(--green-light)', color:'var(--green)' },
             { icon:'📅', label:'Planifier un examen', route:'/dashboard/uni-admin/examens', bg:'var(--gold-light)', color:'var(--amber)' },
             { icon:'📊', label:'Générer un rapport', route:'/dashboard/uni-admin/reports', bg:'var(--pink-light)', color:'var(--pink)' },
+            { icon: '📚', label: 'Matières', sub: 'Par filière et enseignant', to: '/dashboard/scolarite/matieres' },
+{ icon: '📋', label: 'Feuille de présence', sub: 'Cours et examens', to: '/dashboard/scolarite/presence' },
           ].map((a, i) => (
             <button key={i} onClick={() => navigate(a.route)}
               style={{

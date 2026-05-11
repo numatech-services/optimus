@@ -30,7 +30,8 @@ export default function DashLayout({ children, title = 'Tableau de bord', requir
     scolarite:'/dashboard/scolarite', enseignant:'/dashboard/enseignant',
     etudiant:'/dashboard/etudiant', surveillant:'/dashboard/surveillant',
   }
-  if (requiredRole && effectiveUser.role !== requiredRole) {
+  const roles = Array.isArray(requiredRole) ? requiredRole : requiredRole ? [requiredRole] : []
+  if (roles.length > 0 && !roles.includes(effectiveUser.role)) {
     return <Navigate to={roleRoutes[effectiveUser.role] || '/login'} replace />
   }
 

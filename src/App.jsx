@@ -88,6 +88,8 @@ const ScolariteNotes        = lazy(() => import('./pages/dashboards/Scolarite/No
 const ScolariteEDT          = lazy(() => import('./pages/dashboards/Scolarite/EDT'))
 const ScolariteExamens      = lazy(() => import('./pages/dashboards/Scolarite/Examens'))
 const ScolariteDocuments    = lazy(() => import('./pages/dashboards/Scolarite/Documents'))
+const ScolariteMatieres    = lazy(() => import('./pages/dashboards/Scolarite/Matieres'))
+const ScolaritePresence     = lazy(() => import('./pages/dashboards/Scolarite/Presence'))
 
 // Teacher sub-pages
 const TeacherNotes     = lazy(() => import('./pages/dashboards/Teacher/Notes'))
@@ -254,6 +256,8 @@ function AppRoutes() {
         <Route path="/dashboard/uni-admin/communication"           element={<Guard roles="admin_universite"><UniAdminCommunication /></Guard>} />
         <Route path="/dashboard/uni-admin/agents"                 element={<Guard roles="admin_universite"><UniAdminAgentManagement /></Guard>} />
         <Route path="/dashboard/uni-admin/settings"               element={<Guard roles="admin_universite"><UniAdminSettings /></Guard>} />
+        <Route path="/dashboard/scolarite/matieres" element={<Guard roles={["scolarite","admin_universite","enseignant"]}><ScolariteMatieres /></Guard>} />
+<Route path="/dashboard/scolarite/presence" element={<Guard roles={["scolarite","admin_universite","surveillant","enseignant"]}><ScolaritePresence /></Guard>} />
         {/* Contrôle d'accès physique */}
         <Route path="/dashboard/uni-admin/access-control"             element={<Guard roles="admin_universite"><AccessControlModule /></Guard>} />
         <Route path="/dashboard/uni-admin/access-control/devices"     element={<Guard roles="admin_universite"><AccessControlDevices /></Guard>} />
@@ -270,6 +274,8 @@ function AppRoutes() {
         <Route path="/dashboard/scolarite/examens"       element={<Guard roles={["scolarite","admin_universite"]}><ScolariteExamens /></Guard>} />
         <Route path="/dashboard/scolarite/notes"         element={<Guard roles={["scolarite","admin_universite"]}><ScolariteNotes /></Guard>} />
         <Route path="/dashboard/scolarite/documents"     element={<Guard roles={["scolarite","admin_universite"]}><ScolariteDocuments /></Guard>} />
+        <Route path="/dashboard/scolarite/matieres"      element={<Guard roles={["scolarite","admin_universite","enseignant"]}><ScolariteMatieres /></Guard>} />
+        <Route path="/dashboard/scolarite/presence"      element={<Guard roles={["scolarite","admin_universite","surveillant","enseignant"]}><ScolaritePresence /></Guard>} />
 
         {/* ── ENSEIGNANT ── */}
         <Route path="/dashboard/enseignant"           element={<Guard roles="enseignant"><TeacherDash /></Guard>} />

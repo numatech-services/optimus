@@ -7,12 +7,17 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({ 
-      registerType: 'autoUpdate',
+      // 'prompt' = le SW attend que l'utilisateur recharge manuellement.
+      // 'autoUpdate' causait le bug : le vieux SW servait du cache périmé
+      // pendant 30s avant que le nouveau prenne la main.
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       workbox: {
-        // Cache les assets statiques agressivement
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Runtime caching pour les fonts Google
+        // On ne cache PAS le HTML principal — toujours récupéré du réseau
+        // pour garantir que l'app repart sur la dernière version.
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+        // Ne jamais mettre en cache index.html — c'est la source du bug
+        navigateFallback: null,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -25,14 +30,22 @@ export default defineConfig({
             options: { cacheName: 'gstatic-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 } }
           },
           {
-            // Cache les requêtes Supabase API avec stale-while-revalidate
+            // Supabase : NetworkFirst avec timeout COURT (3s).
+            // Avant c'était 10s → l'app attendait 10s avant de tomber en erreur.
+            // Maintenant si le réseau répond en +3s, on sert le cache et on
+            // revalide en arrière-plan.
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-api-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 5 * 60 },
-              networkTimeoutSeconds: 10
+              expiration: { maxEntries: 200, maxAgeSeconds: 2 * 60 }, // 2min max
+              networkTimeoutSeconds: 3 // Réduit de 10 à 3 secondes
             }
+          },
+          {
+            // Auth Supabase : jamais depuis le cache
+            urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/.*/i,
+            handler: 'NetworkOnly',
           }
         ]
       },
