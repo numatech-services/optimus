@@ -3,48 +3,54 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  // 1. Définition des plugins (React + PWA)
   plugins: [
     react(),
     VitePWA({ 
-      // 'prompt' = le SW attend que l'utilisateur recharge manuellement.
-      // 'autoUpdate' causait le bug : le vieux SW servait du cache périmé
-      // pendant 30s avant que le nouveau prenne la main.
-      registerType: 'prompt',
+      // 'autoUpdate' : le nouveau SW s'active immédiatement sans attendre
+      // l'utilisateur. C'est le bon choix pour une app de données en temps réel.
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       workbox: {
-        // On ne cache PAS le HTML principal — toujours récupéré du réseau
-        // pour garantir que l'app repart sur la dernière version.
+        // On ne cache PAS le HTML principal
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-        // Ne jamais mettre en cache index.html — c'est la source du bug
         navigateFallback: null,
+        // IMPORTANT : skip waiting + claim immédiatement
+        // Évite que le vieux SW continue à tourner en arrière-plan
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 } }
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 }
+            }
           },
           {
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: 'CacheFirst',
-            options: { cacheName: 'gstatic-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 } }
-          },
-          {
-            // Supabase : NetworkFirst avec timeout COURT (3s).
-            // Avant c'était 10s → l'app attendait 10s avant de tomber en erreur.
-            // Maintenant si le réseau répond en +3s, on sert le cache et on
-            // revalide en arrière-plan.
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
-            handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-api-cache',
-              expiration: { maxEntries: 200, maxAgeSeconds: 2 * 60 }, // 2min max
-              networkTimeoutSeconds: 3 // Réduit de 10 à 3 secondes
+              cacheName: 'gstatic-fonts-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 }
             }
           },
           {
-            // Auth Supabase : jamais depuis le cache
+            // Supabase REST API : NetworkOnly = JAMAIS de cache.
+            // C'est la racine du bug : le cache servait des données périmées
+            // après inactivité ou changement d'onglet.
+            // Les données doivent TOUJOURS venir du réseau.
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
+            handler: 'NetworkOnly',
+          },
+          {
+            // Auth Supabase : toujours depuis le réseau
             urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/.*/i,
+            handler: 'NetworkOnly',
+          },
+          {
+            // Storage Supabase : toujours depuis le réseau
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
             handler: 'NetworkOnly',
           }
         ]
@@ -70,14 +76,12 @@ export default defineConfig({
     })
   ],
 
-  // 2. Serveur de développement
   server: {
     port: 3000,
     open: true,
     strictPort: false,
   },
 
-  // 3. Configuration du Build de production
   build: {
     outDir: 'dist',
     sourcemap: false,
@@ -86,7 +90,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Vendor libs dans des chunks séparés (compatible avec React.lazy)
           if (id.includes('node_modules/react-dom')) return 'vendor'
           if (id.includes('node_modules/react/'))    return 'vendor'
           if (id.includes('node_modules/react-router')) return 'router'
@@ -97,10 +100,8 @@ export default defineConfig({
     }
   },
 
-  // 4. URL de base
   base: '/',
 
-  // 5. Preview (pour tester le build localement)
   preview: {
     port: 4173,
     open: true,

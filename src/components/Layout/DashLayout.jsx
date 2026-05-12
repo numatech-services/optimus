@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import { useAuth } from '../../context/AuthContext'
 import { Navigate } from 'react-router-dom'
+import useInactivityLogout from '../../hooks/useInactivityLogout'
 
-export default function DashLayout({ children, title = 'Tableau de bord', requiredRole }) {
-  const { user, loading } = useAuth()
+export default function DashLayout({ children, title = 'Tableau de bord', requiredRole, onRefresh }) {
+  const { user, loading, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Check localStorage as fallback during initial render race condition
@@ -16,6 +17,10 @@ export default function DashLayout({ children, title = 'Tableau de bord', requir
     } catch { return null }
   })()
   const effectiveUser = user || storedUser
+
+  // ── Auto-logout après 60s d'inactivité
+  // ── + refresh des données si l'user revient après 30s d'absence
+  useInactivityLogout(logout, 60_000, onRefresh ?? null, 30_000)
 
   if (loading && !storedUser) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:'Marianne,Roboto,sans-serif', color:'var(--slate)', fontSize:'1rem' }}>
@@ -37,7 +42,6 @@ export default function DashLayout({ children, title = 'Tableau de bord', requir
 
   return (
     <div className="dash-layout">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)}
           onKeyDown={e => { if (e.key === 'Escape') setSidebarOpen(false) }}
