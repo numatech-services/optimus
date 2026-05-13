@@ -178,9 +178,9 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
-  // ── 4. Inactivité (1 minute) ── 
-  // Active auto-logout après 1 minute d'inactivité (60000 ms) - Seulement si user est connecté
-  useInactivityLogout(user ? logout : null, 60000)
+  // ── 4. Inactivité (30 minutes) ──
+  // Auto-logout après 30 min d'inactivité réelle (pas de logout au changement d'onglet)
+  useInactivityLogout(user ? logout : null, 30 * 60 * 1000)
 
   // ── 5. Vérification de session (appelable par les pages) ──
   const checkSession = useCallback(async () => {

@@ -5,38 +5,28 @@ import { useEffect, useRef, useCallback } from 'react'
  * au retour sur l'onglet.
  *
  * @param {Function} logout         - Fonction de déconnexion
- * @param {number}   inactivityMs   - Délai avant auto-logout (défaut : 60s)
+ * @param {number}   inactivityMs   - Délai avant auto-logout (défaut : 30 min)
  * @param {Function} onRefresh      - (optionnel) Callback appelé quand l'user
  *                                    revient sur l'onglet après staleAfterMs
  * @param {number}   staleAfterMs   - Délai après lequel onRefresh se déclenche
- *                                    au retour sur l'onglet (défaut : 30s)
- *
- * Usage minimal (comportement identique à l'ancienne version) :
- *   useInactivityLogout(logout)
- *
- * Usage avec refresh :
- *   useInactivityLogout(logout, 60000, () => {
- *     fetchEtudiants()
- *     fetchPaiements()
- *   }, 30000)
+ *                                    au retour sur l'onglet (défaut : 5 min)
  */
 export default function useInactivityLogout(
   logout,
-  inactivityMs = 60_000,
+  inactivityMs = 30 * 60 * 1000,   // 30 minutes (était 60 secondes — trop court)
   onRefresh = null,
-  staleAfterMs = 30_000
+  staleAfterMs = 5 * 60 * 1000     // 5 minutes (était 30 secondes)
 ) {
   const inactivityTimerRef = useRef(null)
   const isActivatedRef     = useRef(false)
   const lastActiveAt       = useRef(Date.now())
+  const hiddenAt           = useRef(null)
   const onRefreshRef       = useRef(onRefresh)
 
-  // Garder la ref à jour sans recréer les listeners
   useEffect(() => {
     onRefreshRef.current = onRefresh
   }, [onRefresh])
 
-  // Exposé pour que les composants puissent reset le timer après un fetch réussi
   const markActive = useCallback(() => {
     lastActiveAt.current = Date.now()
   }, [])
@@ -48,7 +38,10 @@ export default function useInactivityLogout(
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current)
 
       inactivityTimerRef.current = setTimeout(() => {
-        console.warn('[Inactivité] Auto-logout après inactivité')
+        // Ne pas logout si l'onglet est caché — attendre le retour de l'user
+        if (document.visibilityState === 'hidden') return
+
+        console.warn('[Inactivité] Auto-logout après inactivité prolongée')
         localStorage.removeItem('oc_user')
         sessionStorage.clear()
         logout()
@@ -64,33 +57,39 @@ export default function useInactivityLogout(
       }
     }
 
-    // --- NOUVEAU : rechargement au retour sur l'onglet ---
     const handleVisibility = () => {
-      if (document.visibilityState !== 'visible') return
+      if (document.visibilityState === 'hidden') {
+        // Onglet caché — mémoriser le moment et suspendre le timer
+        hiddenAt.current = Date.now()
+        if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current)
+        return
+      }
 
-      const awayMs = Date.now() - lastActiveAt.current
+      // Onglet redevenu visible
+      const now = Date.now()
+      const totalAwayMs = now - lastActiveAt.current
 
-      if (awayMs >= inactivityMs) {
-        // L'user était absent plus longtemps que le délai de logout → logout
-        console.warn('[Inactivité] Auto-logout au retour (inactivité longue)')
+      if (totalAwayMs >= inactivityMs) {
+        // Vraiment absent trop longtemps → logout
+        console.warn(`[Inactivité] Auto-logout au retour (absent ${Math.round(totalAwayMs / 60000)} min)`)
         localStorage.removeItem('oc_user')
         sessionStorage.clear()
         logout()
         return
       }
 
-      // L'user revient dans la fenêtre active → reset le timer
+      // Retour dans les temps → reset le timer, marquer l'activité
+      lastActiveAt.current = now
+      hiddenAt.current = null
       resetTimer()
 
-      // Si les données sont périmées, déclencher le refresh
-      if (onRefreshRef.current && awayMs >= staleAfterMs) {
-        console.log(`[Refresh] Données périmées (absent ${Math.round(awayMs / 1000)}s), rechargement...`)
-        lastActiveAt.current = Date.now()
+      // Refresh silencieux si données périmées
+      if (onRefreshRef.current && totalAwayMs >= staleAfterMs) {
+        console.log(`[Refresh] Données périmées (absent ${Math.round(totalAwayMs / 1000)}s), rechargement...`)
         onRefreshRef.current()
       }
     }
 
-    // Activation des listeners au premier mouvement (comportement original conservé)
     const activateListeners = () => {
       if (!isActivatedRef.current) {
         isActivatedRef.current = true
